@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color Flood — Mini Game</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --accent: #f59e0b;
+      --bg: #f4f6fb;
+      --text: #1d2233;
+      --soft: #69708c;
+      --ease-pop: cubic-bezier(.34, 1.56, .64, 1);
+    }
+    button { font-family: inherit; }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 8px;
+    }
+    .back {
+      color: var(--soft);
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      border: 1px solid #e2e6f2;
+      border-radius: 999px;
+      background: #fff;
+      transition: color .2s, border-color .2s, transform .2s;
+    }
+    .back:hover { color: var(--accent); border-color: var(--accent); transform: translateX(-3px); }
+    h1 { font-size: 1.15rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+
+    .toolbar {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 20px 14px;
+      flex-wrap: wrap;
+    }
+    .stats {
+      display: flex;
+      gap: 16px;
+      font-size: .9rem;
+      color: var(--soft);
+      font-variant-numeric: tabular-nums;
+    }
+    .stats b { color: var(--text); margin-left: 4px; }
+    .stats b.danger { color: #dc2626; }
+    .restart {
+      padding: 9px 18px;
+      border: 1px solid #e2e6f2;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--soft);
+      font-size: .85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .restart:hover { border-color: var(--accent); color: var(--accent); }
+
+    .hint { max-width: 560px; padding: 0 20px 14px; color: var(--soft); font-size: .85rem; text-align: center; }
+
+    .board {
+      width: min(90vw, 480px);
+      aspect-ratio: 1;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 2px;
+      padding: 8px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(35, 46, 84, .12);
+    }
+    .cell { border-radius: 4px; transition: background .28s ease; }
+    .cell.origin { position: relative; }
+    .cell.origin::after {
+      content: "◉";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: rgba(255, 255, 255, .85);
+      font-size: .7rem;
+    }
+
+    .palette {
+      display: flex;
+      gap: 12px;
+      padding: 22px 0 40px;
+    }
+    .swatch {
+      width: 52px;
+      height: 52px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(35, 46, 84, .22);
+      transition: transform .2s var(--ease-pop), box-shadow .2s;
+    }
+    .swatch:hover { transform: translateY(-4px) scale(1.1); }
+    .swatch:active { transform: scale(.94); }
+    .swatch:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(20, 26, 50, .45);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+      z-index: 10;
+      padding: 20px;
+    }
+    .overlay.show { opacity: 1; pointer-events: auto; }
+    .end-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 40px 48px;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(20, 26, 50, .35);
+      transform: scale(.7);
+      transition: transform .4s var(--ease-pop);
+    }
+    .overlay.show .end-card { transform: scale(1); }
+    .end-card .emoji { font-size: 3rem; }
+    .end-card h2 { font-size: 1.6rem; margin: 8px 0 4px; }
+    .end-card p { color: var(--soft); line-height: 1.7; }
+    .end-card .record { color: #d97706; font-weight: 700; }
+    .end-card button {
+      margin-top: 18px;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .2s var(--ease-pop), filter .2s;
+    }
+    .end-card button:hover { transform: scale(1.06); filter: brightness(1.1); }
+
+    @media (max-width: 420px) {
+      .swatch { width: 44px; height: 44px; }
+      .palette { gap: 9px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="back" href="../../index.html">← Mini Game</a>
+    <h1>🎨 Color Flood</h1>
+    <span></span>
+  </header>
+
+  <div class="toolbar">
+    <div class="stats">
+      <span>Moves<b id="moves">0 / 22</b></span>
+      <span>Owned<b id="owned">1 / 144</b></span>
+      <span>Best<b id="best">—</b></span>
+    </div>
+    <button class="restart" id="newBtn">✦ New board</button>
+  </div>
+
+  <p class="hint">Flood spreads from the ◉ corner. Pick a color to absorb every touching tile of that color — fill the whole board in 22 moves.</p>
+
+  <main class="board" id="board" aria-label="Color Flood board"></main>
+
+  <div class="palette" id="palette"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="end-card">
+      <div class="emoji" id="endEmoji">🎉</div>
+      <h2 id="endTitle">Flooded!</h2>
+      <p id="endStats"></p>
+      <button id="againBtn">Play again</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const N = 12;
+      const MAX_MOVES = 22;
+      const COLORS = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899"];
+
+      const boardEl = document.getElementById("board");
+      const paletteEl = document.getElementById("palette");
+      const movesEl = document.getElementById("moves");
+      const ownedEl = document.getElementById("owned");
+      const bestEl = document.getElementById("best");
+      const overlay = document.getElementById("overlay");
+
+      let grid = [];          // N*N flat array of color indices
+      let cells = [];         // matching div elements
+      let moves = 0;
+      let over = false;
+      let swatches = [];
+
+      // build static DOM once
+      for (let i = 0; i < N * N; i++) {
+        const div = document.createElement("div");
+        div.className = i === 0 ? "cell origin" : "cell";
+        boardEl.appendChild(div);
+        cells.push(div);
+      }
+      COLORS.forEach((c, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "swatch";
+        btn.style.background = c;
+        btn.setAttribute("aria-label", `Flood with color ${idx + 1}`);
+        btn.addEventListener("click", () => flood(idx));
+        paletteEl.appendChild(btn);
+        swatches.push(btn);
+      });
+
+      const idx = (r, c) => r * N + c;
+
+      function regionSize() {
+        // count tiles connected to the origin with the origin's color
+        const target = grid[0];
+        const seen = new Set([0]);
+        const queue = [0];
+        while (queue.length) {
+          const i = queue.pop();
+          const r = Math.floor(i / N), c = i % N;
+          for (const [nr, nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]) {
+            if (nr < 0 || nr >= N || nc < 0 || nc >= N) continue;
+            const ni = idx(nr, nc);
+            if (!seen.has(ni) && grid[ni] === target) { seen.add(ni); queue.push(ni); }
+          }
+        }
+        return seen;
+      }
+
+      function paint() {
+        for (let i = 0; i < grid.length; i++) cells[i].style.background = COLORS[grid[i]];
+      }
+
+      function renderStats(ownedCount) {
+        movesEl.textContent = `${moves} / ${MAX_MOVES}`;
+        movesEl.classList.toggle("danger", MAX_MOVES - moves <= 4 && !over);
+        ownedEl.textContent = `${ownedCount} / ${N * N}`;
+        const best = localStorage.getItem("cf_best");
+        bestEl.textContent = best ? `${best} moves` : "—";
+      }
+
+      function newGame() {
+        grid = Array.from({ length: N * N }, () => Math.floor(Math.random() * COLORS.length));
+        moves = 0;
+        over = false;
+        overlay.classList.remove("show");
+        swatches.forEach((s) => (s.disabled = false));
+        paint();
+        renderStats(regionSize().size);
+      }
+
+      function flood(colorIdx) {
+        if (over || colorIdx === grid[0]) return;
+
+        const region = regionSize();
+        for (const i of region) grid[i] = colorIdx;
+        moves++;
+        paint();
+
+        const newRegion = regionSize();
+        renderStats(newRegion.size);
+
+        if (newRegion.size === N * N) return end(true);
+        if (moves >= MAX_MOVES) return end(false);
+      }
+
+      function end(won) {
+        over = true;
+        swatches.forEach((s) => (s.disabled = true));
+
+        const emoji = document.getElementById("endEmoji");
+        const title = document.getElementById("endTitle");
+        const stats = document.getElementById("endStats");
+
+        if (won) {
+          const best = +(localStorage.getItem("cf_best") || Infinity);
+          const isRecord = moves < best;
+          if (isRecord) localStorage.setItem("cf_best", moves);
+          emoji.textContent = "🎉";
+          title.textContent = "Board flooded!";
+          stats.innerHTML =
+            `Finished in <b>${moves}</b> of ${MAX_MOVES} moves.` +
+            (isRecord ? `<br><span class="record">🏆 New personal best!</span>` : "");
+        } else {
+          const owned = regionSize().size;
+          emoji.textContent = "🌊";
+          title.textContent = "Out of moves…";
+          stats.innerHTML = `You claimed <b>${owned}</b> of ${N * N} tiles.<br>So close — try a new board!`;
+        }
+        renderStats(regionSize().size);
+        setTimeout(() => overlay.classList.add("show"), 450);
+      }
+
+      document.getElementById("newBtn").addEventListener("click", newGame);
+      document.getElementById("againBtn").addEventListener("click", newGame);
+
+      newGame();
+    })();
+  </script>
+</body>
+</html>

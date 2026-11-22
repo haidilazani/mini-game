@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mole Mash — Mini Game</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐹</text></svg>" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --accent: #10b981;
+      --bg: #f4f6fb;
+      --text: #1d2233;
+      --soft: #69708c;
+      --ease-pop: cubic-bezier(.34, 1.56, .64, 1);
+    }
+    button { font-family: inherit; }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 8px;
+    }
+    .back {
+      color: var(--soft);
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      border: 1px solid #e2e6f2;
+      border-radius: 999px;
+      background: #fff;
+      transition: color .2s, border-color .2s, transform .2s;
+    }
+    .back:hover { color: var(--accent); border-color: var(--accent); transform: translateX(-3px); }
+    h1 { font-size: 1.15rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+
+    .hud {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 20px;
+      font-variant-numeric: tabular-nums;
+    }
+    .hud .stat { font-size: .9rem; color: var(--soft); white-space: nowrap; }
+    .hud .stat b { color: var(--text); font-size: 1.15rem; margin-left: 5px; }
+
+    .timebar {
+      flex: 1;
+      height: 12px;
+      background: #e2e6f2;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .timebar .fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #34d399, #10b981);
+      transition: width .1s linear, background .3s;
+    }
+    .timebar .fill.low { background: linear-gradient(90deg, #f87171, #ef4444); }
+
+    .stage {
+      position: relative;
+      width: min(92vw, 520px);
+      margin-bottom: 36px;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding: 26px;
+      background: linear-gradient(160deg, #bbf7d0, #86efac 60%, #6ee7a8);
+      border-radius: 26px;
+      box-shadow: 0 16px 40px rgba(16, 122, 87, .25), inset 0 2px 0 rgba(255,255,255,.5);
+    }
+    .board.shake { animation: shake .4s ease; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-7px); }
+      50% { transform: translateX(7px); }
+      75% { transform: translateX(-4px); }
+    }
+
+    .hole {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .pit {
+      position: absolute;
+      bottom: 4%;
+      left: 10%;
+      right: 10%;
+      height: 30%;
+      background: radial-gradient(ellipse at 50% 40%, #4a3526 0%, #2e2014 70%);
+      border-radius: 50%;
+      box-shadow: inset 0 6px 10px rgba(0, 0, 0, .45);
+    }
+    .mole {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translate(-50%, 130%);
+      font-size: clamp(2.2rem, 9vw, 3.4rem);
+      line-height: 1;
+      transition: transform .13s ease-out;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .3));
+      pointer-events: none;
+    }
+    .mole.up { transform: translate(-50%, 0); }
+    .mole.gold { filter: sepia(1) saturate(4) hue-rotate(-18deg) drop-shadow(0 0 14px #fbbf24); }
+    .mole.bonked { transform: translate(-50%, 8%) scale(1.15, .8); }
+
+    .floater {
+      position: absolute;
+      font-weight: 900;
+      font-size: 1.25rem;
+      color: var(--accent);
+      pointer-events: none;
+      animation: floatUp .75s ease-out forwards;
+      z-index: 5;
+      text-shadow: 0 1px 0 #fff;
+    }
+    .floater.bad { color: #ef4444; }
+    .floater.gold { color: #d97706; }
+    @keyframes floatUp {
+      from { opacity: 1; transform: translate(-50%, 0); }
+      to   { opacity: 0; transform: translate(-50%, -46px); }
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      background: rgba(20, 26, 50, .45);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border-radius: 26px;
+      transition: opacity .3s;
+      z-index: 10;
+    }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    .panel {
+      background: #fff;
+      border-radius: 22px;
+      padding: 32px 40px;
+      box-shadow: 0 20px 50px rgba(20, 26, 50, .35);
+      max-width: 88%;
+    }
+    .panel .emoji { font-size: 3rem; }
+    .panel h2 { font-size: 1.5rem; margin: 8px 0 4px; }
+    .panel p { color: var(--soft); line-height: 1.7; font-size: .95rem; }
+    .panel .legend {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 10px;
+      font-size: .9rem;
+    }
+    .panel .record { color: #d97706; font-weight: 700; }
+    .panel button {
+      margin-top: 18px;
+      padding: 12px 32px;
+      border: none;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .2s var(--ease-pop), filter .2s;
+    }
+    .panel button:hover { transform: scale(1.06); filter: brightness(1.08); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="back" href="../../index.html">← Mini Game</a>
+    <h1>🐹 Mole Mash</h1>
+    <span></span>
+  </header>
+
+  <div class="hud">
+    <span class="stat">Score<b id="score">0</b></span>
+    <div class="timebar"><div class="fill" id="fill"></div></div>
+    <span class="stat">Best<b id="best">0</b></span>
+  </div>
+
+  <div class="stage" id="stage">
+    <main class="board" id="board"></main>
+
+    <div class="overlay" id="overlay">
+      <div class="panel" id="panel">
+        <div class="emoji">🐹</div>
+        <h2>Mole Mash</h2>
+        <p>Bonk as many moles as you can in <b>30 seconds</b>.</p>
+        <div class="legend">
+          <span>🐹 +1</span>
+          <span style="color:#d97706">✨🐹 +3</span>
+          <span style="color:#ef4444">💣 −2</span>
+        </div>
+        <p style="margin-top:8px">Every 5-hit streak earns a <b>+2 combo</b> bonus!</p>
+        <button id="startBtn">Start mashing</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const DURATION = 30;
+
+      const board = document.getElementById("board");
+      const stage = document.getElementById("stage");
+      const overlay = document.getElementById("overlay");
+      const panel = document.getElementById("panel");
+      const scoreEl = document.getElementById("score");
+      const bestEl = document.getElementById("best");
+      const fillEl = document.getElementById("fill");
+
+      const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+
+      let running = false;
+      let score = 0, combo = 0, timeLeft = DURATION;
+      let spawnTimer = null, clockTimer = null;
+      let best = +(localStorage.getItem("mm_mash_best") || 0);
+      bestEl.textContent = best;
+
+      // build the 9 holes
+      const slots = [];
+      for (let i = 0; i < 9; i++) {
+        const hole = document.createElement("div");
+        hole.className = "hole";
+        hole.innerHTML = `<div class="pit"></div><div class="mole">🐹</div>`;
+        board.appendChild(hole);
+        const slot = { el: hole, mole: hole.querySelector(".mole"), busy: false, bonked: false, type: "", timer: null };
+        hole.addEventListener("pointerdown", (e) => whack(slot, e));
+        slots.push(slot);
+      }
+
+      const progress = () => 1 - timeLeft / DURATION;
+
+      function popMole() {
+        const free = slots.filter((s) => !s.busy);
+        if (!free.length) return;
+        const slot = free[Math.floor(Math.random() * free.length)];
+        const r = Math.random();
+        slot.type = r < 0.12 ? "gold" : r < 0.3 ? "bomb" : "normal";
+        slot.busy = true;
+        slot.bonked = false;
+        slot.mole.textContent = slot.type === "bomb" ? "💣" : "🐹";
+        slot.mole.classList.toggle("gold", slot.type === "gold");
+        slot.mole.classList.add("up");
+
+        const upTime = Math.max(420, rand(560, 950) - progress() * 280);
+        slot.timer = setTimeout(() => hide(slot), upTime);
+      }
+
+      function hide(slot) {
+        clearTimeout(slot.timer);
+        slot.mole.classList.remove("up");
+        setTimeout(() => {
+          slot.busy = false;
+          slot.bonked = false;
+          slot.mole.classList.remove("gold", "bonked");
+        }, 160);
+      }
+
+      function floater(text, cls, x, y) {
+        const span = document.createElement("span");
+        span.className = `floater ${cls}`;
+        span.textContent = text;
+        span.style.left = `${x}px`;
+        span.style.top = `${y}px`;
+        stage.appendChild(span);
+        setTimeout(() => span.remove(), 750);
+      }
+
+      function whack(slot, e) {
+        if (!running) return;
+        const rect = stage.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top - 10;
+
+        if (!slot.busy || slot.bonked || !slot.mole.classList.contains("up")) {
+          combo = 0;                                  // a miss breaks the streak
+          return;
+        }
+        slot.bonked = true;
+        clearTimeout(slot.timer);
+        slot.mole.classList.add("bonked");
+
+        if (slot.type === "bomb") {
+          score = Math.max(0, score - 2);
+          combo = 0;
+          slot.mole.textContent = "💥";
+          floater("−2", "bad", x, y);
+          board.classList.add("shake");
+          setTimeout(() => board.classList.remove("shake"), 400);
+        } else {
+          let gain = slot.type === "gold" ? 3 : 1;
+          combo++;
+          if (combo % 5 === 0) {
+            gain += 2;
+            floater(`+${gain} combo!`, "gold", x, y);
+          } else {
+            floater(`+${gain}`, slot.type === "gold" ? "gold" : "", x, y);
+          }
+          score += gain;
+          slot.mole.textContent = "😵";
+        }
+        scoreEl.textContent = score;
+        setTimeout(() => hide(slot), 130);
+      }
+
+      function scheduleSpawn() {
+        if (!running) return;
+        const delay = Math.max(280, rand(380, 720) - progress() * 280);
+        spawnTimer = setTimeout(() => { popMole(); scheduleSpawn(); }, delay);
+      }
+
+      function start() {
+        score = 0;
+        combo = 0;
+        timeLeft = DURATION;
+        running = true;
+        scoreEl.textContent = "0";
+        fillEl.style.width = "100%";
+        fillEl.classList.remove("low");
+        overlay.classList.add("hidden");
+
+        scheduleSpawn();
+        clockTimer = setInterval(() => {
+          timeLeft = Math.max(0, timeLeft - 0.1);
+          fillEl.style.width = `${(timeLeft / DURATION) * 100}%`;
+          fillEl.classList.toggle("low", timeLeft <= 6);
+          if (timeLeft <= 0) end();
+        }, 100);
+      }
+
+      function end() {
+        running = false;
+        clearTimeout(spawnTimer);
+        clearInterval(clockTimer);
+        slots.forEach(hide);
+
+        const isRecord = score > best;
+        if (isRecord) {
+          best = score;
+          localStorage.setItem("mm_mash_best", best);
+          bestEl.textContent = best;
+        }
+
+        panel.innerHTML = `
+          <div class="emoji">${isRecord ? "🏆" : score > 0 ? "🐹" : "💤"}</div>
+          <h2>Time's up!</h2>
+          <p>You scored <b>${score}</b> point${score === 1 ? "" : "s"}.<br>Best: <b>${best}</b>${isRecord ? `<br><span class="record">New personal best!</span>` : ""}</p>
+          <button id="againBtn">Mash again</button>`;
+        document.getElementById("againBtn").addEventListener("click", start);
+        setTimeout(() => overlay.classList.remove("hidden"), 350);
+      }
+
+      document.getElementById("startBtn").addEventListener("click", start);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liquid Slots — Casino Mini Game</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎰</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Animated liquid background blobs -->
+  <div class="blobs" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+  </div>
+
+  <!-- Confetti layer -->
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <header class="topbar glass">
+    <div class="brand">
+      <a class="icon-btn glass back-btn" href="../../index.html" title="Back to Mini Game hub" aria-label="Back to Mini Game hub">←</a>
+      <span class="brand-icon">🎰</span>
+      <h1>Liquid&nbsp;Slots</h1>
+    </div>
+    <div class="top-actions">
+      <button id="soundToggle" class="icon-btn glass" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+      <button id="themeToggle" class="icon-btn glass" title="Toggle theme" aria-label="Toggle light / dark mode">🌙</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <!-- ===== Slot machine ===== -->
+    <section class="machine glass" aria-label="Slot machine">
+
+      <!-- Stats row -->
+      <div class="stats">
+        <div class="stat glass-inset">
+          <span class="stat-label">Balance</span>
+          <span class="stat-value" id="balance">1000</span>
+        </div>
+        <div class="stat glass-inset">
+          <span class="stat-label">Bet</span>
+          <span class="stat-value" id="betDisplay">10</span>
+        </div>
+        <div class="stat glass-inset">
+          <span class="stat-label">Last win</span>
+          <span class="stat-value win-glow" id="lastWin">0</span>
+        </div>
+      </div>
+
+      <!-- Marquee message -->
+      <div class="marquee glass-inset" id="marquee">Place your bet &amp; spin! ✨</div>
+
+      <!-- Reels -->
+      <div class="reels-frame glass-inset">
+        <div class="payline-arrow left" aria-hidden="true">▶</div>
+        <div class="reels" id="reels">
+          <div class="reel" data-reel="0"><div class="strip"></div></div>
+          <div class="reel" data-reel="1"><div class="strip"></div></div>
+          <div class="reel" data-reel="2"><div class="strip"></div></div>
+        </div>
+        <div class="payline-arrow right" aria-hidden="true">◀</div>
+        <div class="payline" aria-hidden="true"></div>
+        <div class="reels-shade" aria-hidden="true"></div>
+      </div>
+
+      <!-- Win banner -->
+      <div class="win-banner" id="winBanner" role="status"></div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <div class="bet-controls">
+          <button class="ctrl-btn glass" id="betDown" aria-label="Decrease bet">−</button>
+          <button class="ctrl-btn glass" id="betUp" aria-label="Increase bet">+</button>
+          <button class="ctrl-btn glass wide" id="betMax">MAX</button>
+        </div>
+        <button class="spin-btn" id="spinBtn">
+          <span class="spin-label">SPIN</span>
+          <span class="spin-sub">space / enter</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ===== Paytable ===== -->
+    <aside class="paytable glass" aria-label="Paytable">
+      <h2>Paytable</h2>
+      <ul id="paytableList">
+        <li class="jackpot-row"><span>7️⃣ 7️⃣ 7️⃣</span><b>×100 · JACKPOT</b></li>
+        <li><span>💎 💎 💎</span><b>×50</b></li>
+        <li><span>⭐ ⭐ ⭐</span><b>×25</b></li>
+        <li><span>🔔 🔔 🔔</span><b>×20</b></li>
+        <li><span>🍇 🍇 🍇</span><b>×12</b></li>
+        <li><span>🍊 🍊 🍊</span><b>×12</b></li>
+        <li><span>🍋 🍋 🍋</span><b>×8</b></li>
+        <li><span>🍒 🍒 🍒</span><b>×8</b></li>
+        <li><span>Any pair</span><b>×2</b></li>
+      </ul>
+      <button class="ctrl-btn glass wide" id="resetBtn" title="Reset balance to 1000">↺ Reset credits</button>
+    </aside>
+
+  </main>
+
+  <!-- Jackpot overlay -->
+  <div class="jackpot-overlay" id="jackpotOverlay" aria-hidden="true">
+    <div class="jackpot-card glass">
+      <div class="jackpot-title">JACKPOT!</div>
+      <div class="jackpot-amount" id="jackpotAmount">+0</div>
+      <div class="jackpot-sevens">7️⃣ 7️⃣ 7️⃣</div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
